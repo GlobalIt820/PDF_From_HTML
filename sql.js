@@ -1,8 +1,8 @@
 const mysql = require('mysql')
 let connection = mysql.createConnection({
-    host:'http://103.189.88.81:888/phpmyadmin_917d8151be74e484/sql.php',
-    user:'hbmvhs_sql',
-    password:'hbmvhs_sql@321',
+    host:'localhost',
+    user:'root',
+    password:'',
     database:'hbmvhs_sql',
     multipleStatements:true
 })

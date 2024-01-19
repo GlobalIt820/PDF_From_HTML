@@ -18,7 +18,7 @@ app.use(cors())
 var server = app.listen(3000, function () {
     var host = server.address().address
     var port = server.address().port
-    console.log("Example app listening at http://%s:%s", host, port)
+    console.log("Example app listening at http://localhost:3000")
 });
 
 const connection = require('./sql');
@@ -110,52 +110,40 @@ app.get('/generate_domicile_certificate', function (req, res) {
         });
 });
 
-app.get('/generate_bonafide_certificate/:id', function (req, res) {
-    var html = fs.readFileSync(path.join(__dirname, "views/bonafide.ejs"), "utf8");
+async function fetchData(query) {
+    return new Promise((resolve, reject) => {
+        console.log("query>>>",query)
+        connection.query(query, (error, results) => {
+            if (error) {
+                reject(error);
+            }
+            // Process the results here
+            resolve(results);
+            console.log("results>>>",results)
+        });
+    });
+}
+
+app.get('/generate_bonafide_certificate/:id', async function (req, res) {
+    var html = fs.readFileSync(path.join(__dirname, "views/bonafide.html"), "utf8");
     let selectUser = `SELECT students.*,religions.religion_name AS religion,castes.caste_name AS caste FROM students INNER JOIN religions ON religions.id = students.religion INNER JOIN castes ON castes.id = students.caste WHERE (students.id = '${req.params.id}') limit 1`;
     let document = { ...pdfDocument };
     document.html = html;
-    var result = [];
-    var getInformationFromDB = function(callback)
-    {
-        connection.query(selectUser,function (err, res, fields)
-        {
-            if (err) return callback(err);
-            if (res.length) 
-            {
-                for (var i = 0; i < res.length; i++) 
-                {
-                    result.push(res[i]);
-                }
-            }
-            callback(null, result);
-        });
-    };
-    console.log("Call Function");
-    getInformationFromDB(function (err, result) 
-    {
-        if (err) console.log("Database error!");
-        else document.data={'studentdata':result};
-        console.log(document.data);
-    });
-    // var variable = "";
-    // connection.query(selectUser, (err, rows) => {
-    //     if (err) {
-    //         res.send({ status: '404', data: "error" })
-    //     }
-    //     else {
-    //         variable = JSON.parse(JSON.stringify(rows));
-    //         // document.data={'studentdata':rows};
-    //         // res.render('bonafide',{studentdata:rows});
-    //     }
-    // })
-    // console.log(document.data);
-    // document.data={'studentdata':variable};
+    var result = await fetchData(selectUser)
+    console.log("studentData>>>>", result);
+
+    document.data = {
+        "student" : result
+    }
+
+    console.log(document.data);
+
     pdf.create(document, options_portarit).then((pdfResp) => {
         res.contentType("application/pdf");
         res.send(pdfResp);
     })
-    .catch((error) => {
-        res.send(error);
-    });
+        .catch((error) => {
+            res.send(error);
+        });
 });
+
